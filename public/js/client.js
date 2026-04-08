@@ -371,6 +371,34 @@ function showGameOver() {
 const canvas = document.getElementById('board-canvas');
 const ctx = canvas.getContext('2d');
 
+// Pre-built sets for station types (populated when adjacency arrives)
+let undergroundStations = new Set();
+let busStations = new Set();
+let ferryStations = new Set();
+
+// Load SVG map background as an image
+let mapBgImage = null;
+let mapBgLoaded = false;
+const mapBgImg = new Image();
+mapBgImg.onload = () => { mapBgLoaded = true; mapBgImage = mapBgImg; renderBoard(); };
+mapBgImg.src = '/img/london-map.svg';
+
+// Animation frame for pulsing highlights
+let _animFrame = 0;
+let _animRAF = null;
+function startBoardAnimation() {
+  if (_animRAF) return;
+  function tick() {
+    _animFrame = (Date.now() % 2000) / 2000; // 0-1 cycle every 2s
+    renderBoard();
+    _animRAF = requestAnimationFrame(tick);
+  }
+  _animRAF = requestAnimationFrame(tick);
+}
+function stopBoardAnimation() {
+  if (_animRAF) { cancelAnimationFrame(_animRAF); _animRAF = null; }
+}
+
 function renderBoard() {
   if (!stationPositions) return;
 
@@ -384,7 +412,6 @@ function renderBoard() {
 
   const cw = container.clientWidth;
   const ch = container.clientHeight;
-  ctx.clearRect(0, 0, cw, ch);
 
   // Compute scale to fit the 1000x700 map into the canvas
   const mapW = 1000, mapH = 700;
@@ -403,164 +430,418 @@ function renderBoard() {
     };
   }
 
-  function fromCanvas(cx, cy) {
-    return {
-      x: (cx - offsetX) / scale + mapW / 2,
-      y: (cy - offsetY) / scale + mapH / 2,
-    };
+  // === BACKGROUND ===
+  // Fill with a neutral matching color first
+  ctx.fillStyle = '#d8ccb8';
+  ctx.fillRect(0, 0, cw, ch);
+
+  // Draw the SVG map image, aligned to the station coordinate system
+  if (mapBgLoaded && mapBgImage) {
+    const imgX = offsetX - (mapW / 2) * scale;
+    const imgY = offsetY - (mapH / 2) * scale;
+    const imgW = mapW * scale;
+    const imgH = mapH * scale;
+    ctx.drawImage(mapBgImage, imgX, imgY, imgW, imgH);
   }
 
-  // Draw connections
-  const ADJ_DATA = buildAdjacencyFromPositions();
-  drawConnections(ctx, toCanvas, scale, ADJ_DATA);
+  // === CONNECTIONS ===
+  drawConnections(ctx, toCanvas, scale, baseScale);
 
-  // Draw stations
-  const nodeRadius = Math.max(6, 10 * scale / baseScale);
-  const allStations = Object.keys(stationPositions).map(Number);
+  // === STATIONS ===
+  const nodeRadius = Math.max(7, 11 * scale / baseScale);
+  drawStations(ctx, toCanvas, nodeRadius, scale, baseScale);
 
-  for (const s of allStations) {
-    const { x, y } = toCanvas(s);
+  // === PLAYER TOKENS ===
+  drawPlayers(ctx, toCanvas, nodeRadius, scale, baseScale);
 
-    // Determine color
-    let fillColor = '#1a1a2e';
-    let strokeColor = '#3a3a5a';
-    let radius = nodeRadius;
-    let label = String(s);
-
-    // Highlighted (valid move destination)
-    if (highlightedStations.has(s)) {
-      fillColor = 'rgba(74, 158, 255, 0.3)';
-      strokeColor = '#4a9eff';
-      radius = nodeRadius * 1.2;
-    }
-
-    // Selected station
-    if (s === selectedStation) {
-      fillColor = 'rgba(255, 215, 0, 0.4)';
-      strokeColor = '#ffd700';
-      radius = nodeRadius * 1.3;
-    }
-
-    // Mr. X last known
-    if (gameState && s === gameState.mrXLastKnown) {
-      strokeColor = MRX_COLOR;
-      ctx.setLineDash([3, 3]);
-    }
-
-    // Draw node
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = fillColor;
-    ctx.fill();
-    ctx.strokeStyle = strokeColor;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Station number
-    const fontSize = Math.max(6, 8 * scale / baseScale);
-    ctx.fillStyle = '#8899aa';
-    ctx.font = `${fontSize}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(label, x, y);
-  }
-
-  // Draw player tokens
-  if (gameState && gameState.positions) {
-    // Detectives
-    for (let i = 0; i < (gameState.detectives || []).length; i++) {
-      const detId = gameState.detectives[i];
-      const station = gameState.positions[detId];
-      if (!station) continue;
-      const { x, y } = toCanvas(station);
-      const color = DET_COLORS[i % DET_COLORS.length];
-      drawToken(ctx, x, y, nodeRadius * 1.4, color, 'D' + (i + 1));
-    }
-
-    // Mr. X — only show if we're Mr. X, or game is over, or on a reveal round
-    const mrXStation = gameState.positions[gameState.mrX];
-    if (mrXStation) {
-      const { x, y } = toCanvas(mrXStation);
-      drawToken(ctx, x, y, nodeRadius * 1.5, MRX_COLOR, 'X');
-    } else if (gameState.mrXLastKnown) {
-      // Show last known with a ghost marker
-      const { x, y } = toCanvas(gameState.mrXLastKnown);
-      ctx.globalAlpha = 0.4;
-      drawToken(ctx, x, y, nodeRadius * 1.3, MRX_COLOR, 'X?');
-      ctx.globalAlpha = 1;
-    }
+  // Start/stop animation for highlighted stations and current-turn glow
+  const needsAnimation = highlightedStations.size > 0 ||
+    (gameState && gameState.phase === 'playing' && gameState.currentTurn);
+  if (needsAnimation) {
+    startBoardAnimation();
+  } else if (_animRAF) {
+    stopBoardAnimation();
   }
 }
 
-function drawToken(ctx, x, y, radius, color, label) {
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.fillStyle = color;
-  ctx.fill();
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 2;
-  ctx.stroke();
+// Connections that must be drawn as curves to avoid passing through unconnected stations.
+// key: "min-max" station pair, value: curve offset perpendicular to the line (positive = curve left/up, negative = right/down)
+// The magnitude controls how far the arc bends (in map-coord pixels).
+const CURVED_CONNECTIONS = {
+  '173-189': -50,   // catastrophic: passes through 6 stations. Curve south (below bottom row)
+  '172-194': 50,    // passes through 5 stations inc. 193. Curve north (above)
+  '128-188': -35,   // passes directly through station 160. Curve south
+  '171-175': -25,   // passes directly through station 174. Curve south
+  '155-198': -35,   // passes near station 169. Curve south
+  '194-195': -25,   // passes near station 193. Curve south (below)
+  '129-135': 25,    // passes near station 128. Curve north
+  '91-107': -20,    // passes near station 106. Curve south
+};
 
-  ctx.fillStyle = '#000';
-  ctx.font = `bold ${Math.max(8, radius * 0.8)}px sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(label, x, y);
-}
-
-// Build adjacency data for drawing connections
-// We cache this since it doesn't change
-let _adjCache = null;
-function buildAdjacencyFromPositions() {
-  if (_adjCache) return _adjCache;
-  // We'll fetch adjacency from the server implicitly through game mechanics
-  // For rendering, we parse the connections from known transport data
-  // Since we don't have the adjacency on the client, we'll build it from the server state
-  // Actually, we need to ship adjacency to the client for rendering connections
-  // For now, return empty — connections will be drawn once we get the data
-  return null;
-}
-
-function drawConnections(ctx, toCanvas, scale, adjData) {
-  // We need adjacency data on the client to draw connections
-  // This will be populated once we receive it from the server
+function drawConnections(ctx, toCanvas, scale, baseScale) {
   if (!window._adjacency) return;
 
   const drawn = new Set();
+  // Draw order: taxi first (underneath), then bus, underground, ferry on top
+  const lineConfigs = [
+    { type: 'taxi',        adj: window._adjacency.taxi,        color: '#c8a000', width: 1.5, alpha: 0.6,  dash: null },
+    { type: 'bus',         adj: window._adjacency.bus,         color: '#18874a', width: 2.5, alpha: 0.75, dash: null },
+    { type: 'underground', adj: window._adjacency.underground, color: '#cc2233', width: 4,   alpha: 0.8,  dash: null },
+    { type: 'ferry',       adj: window._adjacency.ferry,       color: '#2a5580', width: 2.5, alpha: 0.7,  dash: [8, 5] },
+  ];
 
-  for (const [type, adj, color, width] of [
-    ['underground', window._adjacency.underground, '#e63946', 3],
-    ['bus', window._adjacency.bus, '#2ecc71', 2],
-    ['taxi', window._adjacency.taxi, '#f1c40f', 0.8],
-    ['ferry', window._adjacency.ferry, '#888', 2],
-  ]) {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width * (scale > 0.5 ? 1 : 0.5);
-    ctx.globalAlpha = type === 'taxi' ? 0.25 : 0.5;
+  for (const cfg of lineConfigs) {
+    if (!cfg.adj) continue;
 
-    if (type === 'ferry') {
-      ctx.setLineDash([5, 5]);
-    }
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
 
-    for (const [s, neighbors] of Object.entries(adj)) {
+    for (const [s, neighbors] of Object.entries(cfg.adj)) {
       for (const n of neighbors) {
-        const key = `${type}-${Math.min(s, n)}-${Math.max(s, n)}`;
+        const key = `${cfg.type}-${Math.min(s, n)}-${Math.max(s, n)}`;
         if (drawn.has(key)) continue;
         drawn.add(key);
 
-        const from = toCanvas(Number(s));
-        const to = toCanvas(Number(n));
-        ctx.beginPath();
-        ctx.moveTo(from.x, from.y);
-        ctx.lineTo(to.x, to.y);
+        const sNum = Number(s), nNum = Number(n);
+        const from = toCanvas(sNum);
+        const to = toCanvas(nNum);
+        const scaleMul = scale > 0.5 ? 1 : 0.6;
+
+        // Check if this connection needs to be curved
+        const pairKey = Math.min(sNum, nNum) + '-' + Math.max(sNum, nNum);
+        const curveOffset = CURVED_CONNECTIONS[pairKey];
+
+        // Helper to draw path (straight or curved)
+        function tracePath() {
+          ctx.beginPath();
+          ctx.moveTo(from.x, from.y);
+          if (curveOffset) {
+            // Quadratic bezier: compute control point perpendicular to midpoint
+            const mx = (from.x + to.x) / 2;
+            const my = (from.y + to.y) / 2;
+            const dx = to.x - from.x;
+            const dy = to.y - from.y;
+            const len = Math.sqrt(dx * dx + dy * dy) || 1;
+            // Perpendicular unit vector
+            const px = -dy / len;
+            const py = dx / len;
+            const offsetScaled = curveOffset * scale;
+            ctx.quadraticCurveTo(mx + px * offsetScaled, my + py * offsetScaled, to.x, to.y);
+          } else {
+            ctx.lineTo(to.x, to.y);
+          }
+        }
+
+        // White outline for bus/underground to separate from map
+        if (cfg.type === 'underground' || cfg.type === 'bus') {
+          tracePath();
+          ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+          ctx.lineWidth = (cfg.width + 2) * scaleMul;
+          ctx.globalAlpha = cfg.alpha * 0.4;
+          ctx.stroke();
+        }
+
+        // Main line
+        tracePath();
+        ctx.strokeStyle = cfg.color;
+        ctx.lineWidth = cfg.width * scaleMul;
+        ctx.globalAlpha = cfg.alpha;
+        if (cfg.dash) ctx.setLineDash(cfg.dash);
         ctx.stroke();
+        ctx.setLineDash([]);
       }
     }
+  }
 
-    ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+}
+
+function drawStations(ctx, toCanvas, nodeRadius, scale, baseScale) {
+  const allStations = Object.keys(stationPositions).map(Number);
+  const fontSize = Math.max(5, 7.5 * scale / baseScale);
+  const pulse = 0.5 + Math.sin(_animFrame * Math.PI * 2) * 0.5; // 0-1
+
+  for (const s of allStations) {
+    const { x, y } = toCanvas(s);
+    let radius = nodeRadius;
+    const isUnderground = undergroundStations.has(s);
+    const isBus = busStations.has(s);
+    const isFerry = ferryStations.has(s);
+    const isHighlighted = highlightedStations.has(s);
+    const isSelected = s === selectedStation;
+    const isLastKnown = gameState && s === gameState.mrXLastKnown;
+
+    // --- Highlighted station glow (valid move) ---
+    if (isHighlighted) {
+      radius = nodeRadius * 1.15;
+      const glowAlpha = 0.2 + pulse * 0.3;
+      ctx.beginPath();
+      ctx.arc(x, y, radius * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(30, 100, 220, ${glowAlpha * 0.5})`;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, y, radius * 1.8, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(30, 100, 220, ${glowAlpha})`;
+      ctx.fill();
+    }
+
+    // --- Selected station glow ---
+    if (isSelected) {
+      radius = nodeRadius * 1.25;
+      ctx.beginPath();
+      ctx.arc(x, y, radius * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200, 160, 0, ${0.2 + pulse * 0.25})`;
+      ctx.fill();
+    }
+
+    // --- Mr. X last known glow ---
+    if (isLastKnown) {
+      ctx.beginPath();
+      ctx.arc(x, y, radius * 2.2, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200, 160, 0, ${0.1 + pulse * 0.12})`;
+      ctx.fill();
+    }
+
+    // --- Station shape based on transport type ---
+    if (isUnderground) {
+      // Diamond shape for underground stations - larger, more prominent
+      const r = radius * 1.2;
+
+      // White background behind diamond
+      ctx.beginPath();
+      ctx.moveTo(x, y - r - 1);
+      ctx.lineTo(x + r + 1, y);
+      ctx.lineTo(x, y + r + 1);
+      ctx.lineTo(x - r - 1, y);
+      ctx.closePath();
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+
+      // Diamond fill
+      ctx.beginPath();
+      ctx.moveTo(x, y - r);
+      ctx.lineTo(x + r, y);
+      ctx.lineTo(x, y + r);
+      ctx.lineTo(x - r, y);
+      ctx.closePath();
+
+      ctx.fillStyle = isSelected ? '#fff5cc' :
+                       isHighlighted ? '#d8e8ff' :
+                       '#f8f0f0';
+      ctx.fill();
+
+      ctx.strokeStyle = isSelected ? '#cc9900' :
+                        isHighlighted ? '#2060cc' :
+                        isLastKnown ? '#cc9900' :
+                        '#cc2233';
+      ctx.lineWidth = isHighlighted || isSelected ? 2.5 : 2;
+      if (isLastKnown && !isHighlighted && !isSelected) ctx.setLineDash([3, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+    } else if (isBus && !isUnderground) {
+      // Rounded square for bus stations
+      const r = radius * 0.95;
+      const cr = r * 0.35;
+
+      // White background
+      ctx.beginPath();
+      ctx.moveTo(x - r - 1 + cr, y - r - 1);
+      ctx.lineTo(x + r + 1 - cr, y - r - 1);
+      ctx.arcTo(x + r + 1, y - r - 1, x + r + 1, y - r - 1 + cr, cr);
+      ctx.lineTo(x + r + 1, y + r + 1 - cr);
+      ctx.arcTo(x + r + 1, y + r + 1, x + r + 1 - cr, y + r + 1, cr);
+      ctx.lineTo(x - r - 1 + cr, y + r + 1);
+      ctx.arcTo(x - r - 1, y + r + 1, x - r - 1, y + r + 1 - cr, cr);
+      ctx.lineTo(x - r - 1, y - r - 1 + cr);
+      ctx.arcTo(x - r - 1, y - r - 1, x - r - 1 + cr, y - r - 1, cr);
+      ctx.closePath();
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+
+      // Main shape
+      ctx.beginPath();
+      ctx.moveTo(x - r + cr, y - r);
+      ctx.lineTo(x + r - cr, y - r);
+      ctx.arcTo(x + r, y - r, x + r, y - r + cr, cr);
+      ctx.lineTo(x + r, y + r - cr);
+      ctx.arcTo(x + r, y + r, x + r - cr, y + r, cr);
+      ctx.lineTo(x - r + cr, y + r);
+      ctx.arcTo(x - r, y + r, x - r, y + r - cr, cr);
+      ctx.lineTo(x - r, y - r + cr);
+      ctx.arcTo(x - r, y - r, x - r + cr, y - r, cr);
+      ctx.closePath();
+
+      ctx.fillStyle = isSelected ? '#fff5cc' :
+                       isHighlighted ? '#d8e8ff' :
+                       '#f0f8f0';
+      ctx.fill();
+
+      ctx.strokeStyle = isSelected ? '#cc9900' :
+                        isHighlighted ? '#2060cc' :
+                        isLastKnown ? '#cc9900' :
+                        '#18874a';
+      ctx.lineWidth = isHighlighted || isSelected ? 2 : 1.5;
+      if (isLastKnown && !isHighlighted && !isSelected) ctx.setLineDash([3, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+    } else {
+      // Circle for taxi-only stations
+      const r = radius * 0.85;
+
+      // White background
+      ctx.beginPath();
+      ctx.arc(x, y, r + 1, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+
+      ctx.fillStyle = isSelected ? '#fff5cc' :
+                       isHighlighted ? '#d8e8ff' :
+                       '#faf8f0';
+      ctx.fill();
+
+      ctx.strokeStyle = isSelected ? '#cc9900' :
+                        isHighlighted ? '#2060cc' :
+                        isLastKnown ? '#cc9900' :
+                        '#8a7a55';
+      ctx.lineWidth = isHighlighted || isSelected ? 1.8 : 1;
+      if (isLastKnown && !isHighlighted && !isSelected) ctx.setLineDash([3, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Ferry indicator (small anchor dot)
+    if (isFerry) {
+      ctx.beginPath();
+      ctx.arc(x + radius * 0.55, y - radius * 0.55, 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#2a5580';
+      ctx.fill();
+    }
+
+    // Station number label
+    ctx.fillStyle = isSelected ? '#8a6600' :
+                    isHighlighted ? '#1a4488' :
+                    isUnderground ? '#882233' :
+                    isBus ? '#105530' :
+                    '#5a4a30';
+    ctx.font = `${isHighlighted || isSelected ? 'bold ' : '600 '}${fontSize}px "Inter", "Segoe UI", system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(s), x, y);
+  }
+}
+
+function drawPlayers(ctx, toCanvas, nodeRadius, scale, baseScale) {
+  if (!gameState || !gameState.positions) return;
+
+  // Detectives
+  for (let i = 0; i < (gameState.detectives || []).length; i++) {
+    const detId = gameState.detectives[i];
+    const station = gameState.positions[detId];
+    if (!station) continue;
+    const { x, y } = toCanvas(station);
+    const color = DET_COLORS[i % DET_COLORS.length];
+    const isCurrentTurn = gameState.currentTurn === detId;
+    drawToken(ctx, x, y, nodeRadius * 1.5, color, 'D' + (i + 1), isCurrentTurn, scale);
+  }
+
+  // Mr. X — only show if we're Mr. X, or game is over, or on a reveal round
+  const mrXStation = gameState.positions[gameState.mrX];
+  if (mrXStation) {
+    const { x, y } = toCanvas(mrXStation);
+    const isCurrentTurn = gameState.currentTurn === gameState.mrX;
+    drawToken(ctx, x, y, nodeRadius * 1.6, MRX_COLOR, 'X', isCurrentTurn, scale);
+  } else if (gameState.mrXLastKnown) {
+    // Ghost marker at last known position
+    const { x, y } = toCanvas(gameState.mrXLastKnown);
+    ctx.globalAlpha = 0.4;
+    drawToken(ctx, x, y, nodeRadius * 1.3, MRX_COLOR, 'X?', false, scale);
     ctx.globalAlpha = 1;
   }
+}
+
+function drawToken(ctx, x, y, radius, color, label, isCurrentTurn, scale) {
+  // Shadow
+  ctx.beginPath();
+  ctx.arc(x + 2, y + 3, radius + 1, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+  ctx.fill();
+
+  // Outer ring (glow if current turn)
+  if (isCurrentTurn) {
+    const pulse = 0.5 + Math.sin(_animFrame * Math.PI * 2) * 0.5;
+    ctx.beginPath();
+    ctx.arc(x, y, radius * 1.7, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.1 + pulse * 0.15})`;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius * 1.35, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 + pulse * 0.4})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // White outline for contrast on map
+  ctx.beginPath();
+  ctx.arc(x, y, radius + 2, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  ctx.fill();
+
+  // Main circle with gradient
+  const grad = ctx.createRadialGradient(x - radius * 0.25, y - radius * 0.25, radius * 0.1, x, y, radius);
+  grad.addColorStop(0, lightenColor(color, 50));
+  grad.addColorStop(0.6, color);
+  grad.addColorStop(1, darkenColor(color, 50));
+
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Border
+  ctx.strokeStyle = darkenColor(color, 70);
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // Inner highlight arc (top-left shine)
+  ctx.beginPath();
+  ctx.arc(x, y, radius * 0.65, Math.PI * 1.15, Math.PI * 1.85);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Label
+  const fs = Math.max(9, radius * 0.8);
+  ctx.fillStyle = label === 'X' || label === 'X?' ? '#000' : '#fff';
+  ctx.font = `bold ${fs}px "Inter", "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Text shadow for readability
+  ctx.shadowColor = 'rgba(0,0,0,0.6)';
+  ctx.shadowBlur = 3;
+  ctx.fillText(label, x, y);
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+}
+
+// Color helpers
+function lightenColor(hex, amount) {
+  const rgb = hexToRgb(hex);
+  return `rgb(${Math.min(255, rgb.r + amount)}, ${Math.min(255, rgb.g + amount)}, ${Math.min(255, rgb.b + amount)})`;
+}
+function darkenColor(hex, amount) {
+  const rgb = hexToRgb(hex);
+  return `rgb(${Math.max(0, rgb.r - amount)}, ${Math.max(0, rgb.g - amount)}, ${Math.max(0, rgb.b - amount)})`;
+}
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  return { r: parseInt(h.substring(0, 2), 16), g: parseInt(h.substring(2, 4), 16), b: parseInt(h.substring(4, 6), 16) };
 }
 
 // =====================
@@ -842,6 +1123,21 @@ function escapeHTML(str) {
 // Request it from the server when we connect
 socket.on('adjacency', (data) => {
   window._adjacency = data;
+
+  // Build station type sets for rendering
+  undergroundStations = new Set();
+  busStations = new Set();
+  ferryStations = new Set();
+  if (data.underground) {
+    for (const s of Object.keys(data.underground)) undergroundStations.add(Number(s));
+  }
+  if (data.bus) {
+    for (const s of Object.keys(data.bus)) busStations.add(Number(s));
+  }
+  if (data.ferry) {
+    for (const s of Object.keys(data.ferry)) ferryStations.add(Number(s));
+  }
+
   if (gameState) renderBoard();
 });
 
