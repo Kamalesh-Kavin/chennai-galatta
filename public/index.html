@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scotland Yard Online</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- LOBBY SCREEN -->
+  <div id="lobby-screen" class="screen active">
+    <div class="lobby-container">
+      <h1>SCOTLAND YARD</h1>
+      <h2>Online</h2>
+      <div class="join-form">
+        <input type="text" id="player-name" placeholder="Your name" maxlength="20" autocomplete="off">
+        <div class="role-select">
+          <button class="role-btn" data-role="mrx" id="btn-join-mrx">Join as Mr. X</button>
+          <button class="role-btn" data-role="detective" id="btn-join-detective">Join as Detective</button>
+        </div>
+      </div>
+
+      <div class="lobby-players" id="lobby-players">
+        <h3>Players</h3>
+        <div id="lobby-player-list"></div>
+      </div>
+
+      <div class="lobby-actions">
+        <button id="btn-start" class="btn-primary" disabled>Start Game</button>
+        <button id="btn-leave" class="btn-secondary" style="display:none">Leave</button>
+      </div>
+
+      <div class="lobby-info">
+        <p>1 Mr. X + up to 5 Detectives. Empty slots filled by AI.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="game-screen" class="screen">
+    <div class="game-layout">
+      <!-- Top bar -->
+      <div class="top-bar">
+        <div class="top-left">
+          <span class="game-title">SCOTLAND YARD</span>
+          <span class="round-info" id="round-info">Round 1/22</span>
+        </div>
+        <div class="top-center">
+          <span class="turn-info" id="turn-info">Waiting...</span>
+        </div>
+        <div class="top-right">
+          <button id="btn-how-to-play" class="btn-small">How to Play</button>
+          <button id="btn-reset" class="btn-small btn-danger">Reset</button>
+        </div>
+      </div>
+
+      <!-- Main area -->
+      <div class="main-area">
+        <!-- Board -->
+        <div class="board-container" id="board-container">
+          <canvas id="board-canvas"></canvas>
+          <div class="board-zoom-controls">
+            <button id="btn-zoom-in" title="Zoom In">+</button>
+            <button id="btn-zoom-reset" title="Reset View">&#8634;</button>
+            <button id="btn-zoom-out" title="Zoom Out">&minus;</button>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+          <button class="sidebar-toggle" id="sidebar-toggle">&#9776;</button>
+
+          <!-- Travel Log -->
+          <div class="panel" id="travel-log-panel">
+            <h3>Mr. X Travel Log</h3>
+            <div id="travel-log" class="travel-log"></div>
+          </div>
+
+          <!-- My Info -->
+          <div class="panel" id="my-info-panel">
+            <h3 id="my-role-title">My Info</h3>
+            <div id="my-tickets" class="ticket-display"></div>
+          </div>
+
+          <!-- Players -->
+          <div class="panel">
+            <h3>Players</h3>
+            <div id="player-list" class="player-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom action bar -->
+      <div class="action-bar" id="action-bar">
+        <div id="move-options" class="move-options"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Overlay -->
+  <div id="game-over-overlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2 id="game-over-title">Game Over</h2>
+      <p id="game-over-reason"></p>
+      <button id="btn-new-game" class="btn-primary">New Game</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/client.js"></script>
+</body>
+</html>

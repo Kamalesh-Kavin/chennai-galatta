@@ -1,0 +1,17 @@
+{
+  "name": "scotland-yard",
+  "version": "1.0.0",
+  "description": "Scotland Yard — Online multiplayer board game",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  }
+}
