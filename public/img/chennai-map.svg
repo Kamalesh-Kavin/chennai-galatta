@@ -1,0 +1,214 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="1000" height="700">
+  <defs>
+    <!-- Street pattern -->
+    <pattern id="road-hash" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="8" height="8" fill="rgba(0,0,0,0.03)"/>
+      <line x1="0" y1="8" x2="8" y2="0" stroke="rgba(0,0,0,0.02)" stroke-width="0.5"/>
+    </pattern>
+
+    <!-- Park/green texture -->
+    <pattern id="park-dots" x="0" y="0" width="12" height="12" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="3" r="1.5" fill="rgba(40,100,50,0.15)"/>
+      <circle cx="9" cy="9" r="1" fill="rgba(30,80,40,0.1)"/>
+    </pattern>
+
+    <!-- Glow filter -->
+    <filter id="glow-sm">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- ============================================ -->
+  <!-- BASE: Warm terracotta/beige map background   -->
+  <!-- Chennai has a warm tropical feel             -->
+  <!-- ============================================ -->
+  <rect width="1000" height="700" fill="#e8dcc0"/>
+  <rect width="1000" height="700" fill="url(#road-hash)" opacity="0.5"/>
+
+  <!-- ============================================ -->
+  <!-- DISTRICT ZONES - Real Chennai areas          -->
+  <!-- ============================================ -->
+
+  <!-- North: Tondiarpet / Washermanpet (warm terracotta) -->
+  <path d="M400 0 L1000 0 L1000 80 L900 120 L700 130 L500 100 L400 60 Z" fill="#e8c8a8" opacity="0.45"/>
+
+  <!-- North West: Ambattur / Anna Nagar (peach-cream) -->
+  <path d="M0 0 L400 0 L400 60 L350 120 L200 160 L0 140 Z" fill="#f0d8b8" opacity="0.45"/>
+
+  <!-- West Central: Koyambedu / Vadapalani (warm sage) -->
+  <path d="M0 140 L200 160 L250 250 L200 310 L0 320 Z" fill="#d8e0c0" opacity="0.4"/>
+
+  <!-- Central North: Egmore / Chetpet (golden cream) -->
+  <path d="M350 120 L700 130 L720 250 L500 260 L350 250 Z" fill="#f0e0c0" opacity="0.4"/>
+
+  <!-- Central: T. Nagar / Nungambakkam (warm gold tint) -->
+  <path d="M200 310 L500 310 L530 420 L350 430 L200 400 Z" fill="#f0e0b0" opacity="0.4"/>
+
+  <!-- Central East: Triplicane / Chepauk (dusty rose) -->
+  <path d="M500 260 L720 250 L750 340 L700 410 L530 420 L500 310 Z" fill="#e8d0c0" opacity="0.4"/>
+
+  <!-- East: George Town / Fort (warm terracotta) — extended to fill east -->
+  <path d="M700 130 L900 120 L1000 80 L1000 340 L870 300 L750 340 L720 250 Z" fill="#e0c8b0" opacity="0.45"/>
+
+  <!-- East Mid: Royapettah / Marina (dusty cream) -->
+  <path d="M750 340 L870 300 L1000 340 L1000 500 L720 500 L700 410 Z" fill="#e8d8c0" opacity="0.4"/>
+
+  <!-- South Central: Mylapore / Mandaveli (soft blue-cream) -->
+  <path d="M350 430 L700 410 L720 500 L500 510 L350 500 Z" fill="#c8d8e0" opacity="0.4"/>
+
+  <!-- South East: Mandaveli / Besant Nagar east (warm sand) -->
+  <path d="M720 500 L1000 500 L1000 640 L750 620 L700 540 Z" fill="#d8d0c0" opacity="0.4"/>
+
+  <!-- South: Adyar / Besant Nagar (sage green) -->
+  <path d="M350 540 L700 540 L750 620 L600 660 L350 650 L280 600 Z" fill="#c8d8c0" opacity="0.4"/>
+
+  <!-- South West: Guindy / Saidapet (muted lavender) -->
+  <path d="M0 400 L200 400 L350 500 L350 540 L200 560 L0 540 Z" fill="#d0c8d8" opacity="0.35"/>
+
+  <!-- Far South: Velachery / Tambaram direction -->
+  <path d="M0 540 L200 560 L280 600 L350 650 L200 700 L0 700 Z" fill="#d0d8c8" opacity="0.3"/>
+
+  <!-- Far South East: Thiruvanmiyur / ECR side -->
+  <path d="M600 660 L750 620 L1000 640 L1000 700 L200 700 L350 650 Z" fill="#d8d0c0" opacity="0.3"/>
+
+  <!-- ============================================ -->
+  <!-- MAJOR ROADS (Chennai's key arterials)        -->
+  <!-- ============================================ -->
+  <g stroke="#c0a880" stroke-width="1.5" fill="none" opacity="0.4" stroke-linecap="round">
+    <!-- Anna Salai (Mount Road) - diagonal SW to NE -->
+    <path d="M100 500 Q250 420 400 350 Q550 280 700 210 Q800 170 950 120"/>
+    <!-- Poonamallee High Road (west to east) -->
+    <path d="M0 250 Q200 245 400 248 Q600 252 800 255 Q900 258 1000 260"/>
+    <!-- GST Road (south direction) -->
+    <path d="M300 400 Q280 480 260 560 Q240 620 220 680"/>
+    <!-- ECR / Rajiv Gandhi Salai (east road) -->
+    <path d="M950 120 Q955 250 960 350 Q965 450 970 550"/>
+    <!-- Inner Ring Road (curved) -->
+    <path d="M150 100 Q250 200 350 300 Q400 400 350 500 Q300 580 250 650"/>
+    <!-- Kamarajar Salai -->
+    <path d="M920 100 Q930 200 940 300 Q945 400 950 480"/>
+  </g>
+
+  <!-- Minor roads -->
+  <g stroke="#c0a880" stroke-width="0.7" fill="none" opacity="0.25" stroke-linecap="round">
+    <line x1="200" y1="50" x2="220" y2="200"/>
+    <line x1="500" y1="50" x2="510" y2="150"/>
+    <line x1="600" y1="150" x2="610" y2="300"/>
+    <line x1="400" y1="200" x2="420" y2="350"/>
+    <line x1="100" y1="300" x2="200" y2="310"/>
+    <line x1="500" y1="350" x2="520" y2="450"/>
+    <line x1="650" y1="400" x2="660" y2="500"/>
+    <line x1="300" y1="500" x2="320" y2="580"/>
+    <line x1="600" y1="550" x2="620" y2="630"/>
+    <line x1="450" y1="100" x2="650" y2="110"/>
+    <line x1="300" y1="250" x2="500" y2="258"/>
+    <line x1="400" y1="450" x2="600" y2="458"/>
+    <line x1="800" y1="150" x2="820" y2="300"/>
+    <line x1="850" y1="400" x2="870" y2="550"/>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- PARKS / GREEN AREAS                          -->
+  <!-- ============================================ -->
+
+  <!-- Anna Nagar Tower Park (north west) -->
+  <ellipse cx="180" cy="90" rx="40" ry="25" fill="#8bb860" opacity="0.35"/>
+  <ellipse cx="180" cy="90" rx="40" ry="25" fill="url(#park-dots)"/>
+
+  <!-- Guindy National Park (south west) -->
+  <ellipse cx="200" cy="480" rx="55" ry="30" fill="#8bb860" opacity="0.35"/>
+  <ellipse cx="200" cy="480" rx="55" ry="30" fill="url(#park-dots)"/>
+  <ellipse cx="200" cy="480" rx="40" ry="20" fill="#8bb860" opacity="0.15"/>
+
+  <!-- Theosophical Society / Adyar Eco Park (south east) -->
+  <ellipse cx="700" cy="545" rx="40" ry="20" fill="#8bb860" opacity="0.3"/>
+  <ellipse cx="700" cy="545" rx="40" ry="20" fill="url(#park-dots)"/>
+
+  <!-- Semmozhi Poonga (central) -->
+  <ellipse cx="520" cy="370" rx="25" ry="15" fill="#8bb860" opacity="0.3"/>
+  <ellipse cx="520" cy="370" rx="25" ry="15" fill="url(#park-dots)"/>
+
+  <!-- IIT Madras Campus (south) -->
+  <ellipse cx="450" cy="555" rx="45" ry="22" fill="#8bb860" opacity="0.3"/>
+  <ellipse cx="450" cy="555" rx="45" ry="22" fill="url(#park-dots)"/>
+
+  <!-- ============================================ -->
+  <!-- DISTRICT LABELS                              -->
+  <!-- ============================================ -->
+  <g font-family="Georgia, 'Playfair Display', serif" fill="#8a7a60" opacity="0.45" text-anchor="middle">
+    <text x="180" y="60" font-size="10" font-weight="600" letter-spacing="2.5">ANNA NAGAR</text>
+    <text x="500" y="40" font-size="9" font-weight="600" letter-spacing="2">PERAMBUR</text>
+    <text x="700" y="60" font-size="9" font-weight="600" letter-spacing="2">TONDIARPET</text>
+    <text x="870" y="100" font-size="9" font-weight="600" letter-spacing="2">GEORGE TOWN</text>
+    <text x="100" y="200" font-size="9" font-weight="600" letter-spacing="2">KOYAMBEDU</text>
+    <text x="350" y="175" font-size="9" font-weight="600" letter-spacing="2">AMINJIKARAI</text>
+    <text x="550" y="185" font-size="10" font-weight="600" letter-spacing="2.5">EGMORE</text>
+    <text x="820" y="220" font-size="9" font-weight="600" letter-spacing="2">CHEPAUK</text>
+    <text x="100" y="360" font-size="9" font-weight="600" letter-spacing="2">VADAPALANI</text>
+    <text x="350" y="370" font-size="12" font-weight="700" letter-spacing="3">T. NAGAR</text>
+    <text x="600" y="350" font-size="9" font-weight="600" letter-spacing="2">NUNGAMBAKKAM</text>
+    <text x="800" y="380" font-size="9" font-weight="600" letter-spacing="2">TRIPLICANE</text>
+    <text x="200" y="460" font-size="9" font-weight="600" letter-spacing="2">GUINDY</text>
+    <text x="500" y="460" font-size="10" font-weight="600" letter-spacing="2.5">MYLAPORE</text>
+    <text x="780" y="470" font-size="9" font-weight="600" letter-spacing="2">MANDAVELI</text>
+    <text x="300" y="575" font-size="9" font-weight="600" letter-spacing="2">SAIDAPET</text>
+    <text x="550" y="590" font-size="10" font-weight="600" letter-spacing="2.5">ADYAR</text>
+    <text x="780" y="610" font-size="9" font-weight="600" letter-spacing="2">BESANT NAGAR</text>
+    <text x="150" y="640" font-size="9" font-weight="600" letter-spacing="2">VELACHERY</text>
+    <text x="400" y="660" font-size="9" font-weight="600" letter-spacing="2">TARAMANI</text>
+    <text x="930" y="460" font-size="9" font-weight="600" letter-spacing="2">ROYAPETTAH</text>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- LANDMARK MARKERS                             -->
+  <!-- ============================================ -->
+  <g opacity="0.3">
+    <!-- Fort St. George (George Town area) -->
+    <g transform="translate(870,145)">
+      <rect x="-5" y="-5" width="10" height="10" fill="none" stroke="#8a7a60" stroke-width="1"/>
+      <rect x="-3" y="-8" width="2" height="3" fill="#8a7a60"/>
+      <rect x="1" y="-8" width="2" height="3" fill="#8a7a60"/>
+    </g>
+
+    <!-- Kapaleeshwarar Temple (Mylapore) -->
+    <g transform="translate(560,445)">
+      <path d="M-4 0 L0 -12 L4 0 Z" fill="#8a7a60"/>
+      <rect x="-3" y="0" width="6" height="3" fill="#8a7a60"/>
+    </g>
+
+    <!-- Chennai Central Station -->
+    <g transform="translate(650,160)">
+      <rect x="-6" y="-4" width="12" height="8" fill="none" stroke="#8a7a60" stroke-width="0.8" rx="1"/>
+      <path d="M-6 -4 Q0 -10 6 -4" fill="none" stroke="#8a7a60" stroke-width="0.8"/>
+    </g>
+
+    <!-- Anna Nagar Tower -->
+    <g transform="translate(180,80)">
+      <rect x="-2" y="-8" width="4" height="8" fill="#8a7a60" rx="0.5"/>
+      <circle cx="0" cy="-10" r="2.5" fill="#8a7a60"/>
+    </g>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- COMPASS ROSE (top-right corner)              -->
+  <!-- ============================================ -->
+  <g transform="translate(60,45)" opacity="0.25">
+    <circle cx="0" cy="0" r="18" fill="none" stroke="#8a7a60" stroke-width="0.5"/>
+    <line x1="0" y1="-16" x2="0" y2="16" stroke="#8a7a60" stroke-width="0.5"/>
+    <line x1="-16" y1="0" x2="16" y2="0" stroke="#8a7a60" stroke-width="0.5"/>
+    <polygon points="0,-15 -3,-5 0,-7 3,-5" fill="#8a7a60"/>
+    <text x="0" y="-20" font-family="Georgia, serif" font-size="7" fill="#8a7a60" text-anchor="middle">N</text>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- DECORATIVE BORDER                            -->
+  <!-- ============================================ -->
+  <rect x="2" y="2" width="996" height="696" fill="none" stroke="#b8a888" stroke-width="2" rx="3" opacity="0.35"/>
+  <rect x="6" y="6" width="988" height="688" fill="none" stroke="#b8a888" stroke-width="0.5" rx="2" opacity="0.2"/>
+
+  <!-- Title cartouche (bottom-left) -->
+  <g transform="translate(80,680)" opacity="0.25">
+    <text font-family="Georgia, 'Playfair Display', serif" font-size="9" fill="#8a7a60" text-anchor="middle" font-style="italic">CHENNAI</text>
+  </g>
+</svg>

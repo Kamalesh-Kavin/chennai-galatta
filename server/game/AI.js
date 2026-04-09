@@ -1,5 +1,5 @@
-// Scotland Yard — AI Logic
-// Smart AI for both Mr. X and detective roles
+// Chennai Galatta — AI Logic
+// Smart AI for both The Don and Inspector roles
 
 const { TAXI, BUS, UNDERGROUND, FERRY, STATION_POSITIONS } = require('../data/map');
 

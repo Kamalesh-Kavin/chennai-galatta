@@ -1,7 +1,7 @@
 {
-  "name": "scotland-yard",
-  "version": "1.0.0",
-  "description": "Scotland Yard — Online multiplayer board game",
+  "name": "chennai-galatta",
+  "version": "2.0.0",
+  "description": "Chennai Galatta — Online multiplayer chase game set in Chennai",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",

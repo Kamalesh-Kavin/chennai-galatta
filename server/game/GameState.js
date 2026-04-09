@@ -1,4 +1,4 @@
-// Scotland Yard — Game State Engine
+// Chennai Galatta — Game State Engine
 // Server-authoritative game logic
 
 const { TAXI, BUS, UNDERGROUND, FERRY, START_POSITIONS, REVEAL_ROUNDS, MAX_ROUNDS, STATION_POSITIONS } = require('../data/map');
@@ -23,12 +23,19 @@ class GameState {
     this.turnIndex = 0;
     this.winner = null;      // 'mrx' | 'detectives' | null
     this.winReason = '';
+    this.paused = false;     // game paused state
+    this.humanControlledAI = false; // when true, human players control AI inspectors
 
     // Mr. X travel log: [{round, ticket, station (hidden), revealed}]
     this.travelLog = [];
 
     // Mr. X double move state
     this.isDoubleMoveFirstHalf = false;
+
+    // Move-by-move history snapshots for post-game review
+    // Each entry: { round, playerId, playerName, playerRole, move: {destination, ticket} | null,
+    //   positions: {id: station}, tickets: {id: {...}}, travelLog: [...], event: string|null }
+    this.history = [];
 
     // Positions
     this.positions = {};   // playerId -> station number
@@ -86,12 +93,12 @@ class GameState {
   fillWithAI() {
     if (!this.mrX) {
       const id = 'ai_mrx';
-      this.addPlayer(id, 'Mr. X (AI)', 'mrx', true);
+      this.addPlayer(id, 'The Don (AI)', 'mrx', true);
     }
     while (this.detectives.length < 5) {
       const id = `ai_det_${this.detectives.length + 1}`;
       const num = this.detectives.length + 1;
-      this.addPlayer(id, `Detective ${num} (AI)`, 'detective', true);
+      this.addPlayer(id, `Inspector ${num} (AI)`, 'detective', true);
     }
   }
 
@@ -107,6 +114,10 @@ class GameState {
 
     if (!this.mrX) return { error: 'No Mr. X player' };
     if (this.detectives.length === 0) return { error: 'No detectives' };
+
+    // When 2+ humans are playing, let humans control AI inspector moves
+    const humanCount = Object.values(this.players).filter(p => !p.isAI).length;
+    this.humanControlledAI = humanCount >= 2;
 
     this.phase = 'playing';
     this.round = 1;
@@ -147,7 +158,20 @@ class GameState {
     this.turnIndex = 0;
     this.currentTurn = this.turnOrder[0];
 
+    // Record initial positions snapshot
+    this._recordSnapshot(null, null, 'Game started');
+
     return { ok: true };
+  }
+
+  // =====================
+  // PAUSE
+  // =====================
+
+  togglePause() {
+    if (this.phase !== 'playing') return { error: 'Game not in progress' };
+    this.paused = !this.paused;
+    return { ok: true, paused: this.paused };
   }
 
   // =====================
@@ -203,6 +227,7 @@ class GameState {
 
   makeMove(playerId, destination, ticket) {
     if (this.phase !== 'playing') return { error: 'Game not in progress' };
+    if (this.paused) return { error: 'Game is paused' };
     if (this.currentTurn !== playerId) return { error: 'Not your turn' };
 
     const isMrX = playerId === this.mrX;
@@ -233,13 +258,17 @@ class GameState {
       }
     }
 
+    // Record snapshot after every move
+    this._recordSnapshot({ destination, ticket }, playerId);
+
     // Check win conditions after detective move
     if (!isMrX) {
       // Did detective land on Mr. X?
       if (destination === this.positions[this.mrX]) {
         this.phase = 'ended';
         this.winner = 'detectives';
-        this.winReason = `${this.players[playerId].name} caught Mr. X at station ${destination}!`;
+        this.winReason = `${this.players[playerId].name} caught The Don at station ${destination}!`;
+        this._recordSnapshot(null, null, this.winReason);
         return { ok: true, gameOver: true };
       }
     }
@@ -251,6 +280,7 @@ class GameState {
   // Mr. X uses double move
   useDoubleMove(playerId) {
     if (playerId !== this.mrX) return { error: 'Only Mr. X can use double move' };
+    if (this.paused) return { error: 'Game is paused' };
     if (this.currentTurn !== playerId) return { error: 'Not your turn' };
     if (this.tickets[playerId].doubleMoves <= 0) return { error: 'No double moves left' };
     if (this.isDoubleMoveFirstHalf) return { error: 'Already in a double move' };
@@ -297,7 +327,8 @@ class GameState {
     if (this.round > MAX_ROUNDS) {
       this.phase = 'ended';
       this.winner = 'mrx';
-      this.winReason = `Mr. X evaded capture for ${MAX_ROUNDS} rounds!`;
+      this.winReason = `The Don evaded capture for ${MAX_ROUNDS} rounds!`;
+      this._recordSnapshot(null, null, this.winReason);
       return { ok: true, gameOver: true };
     }
 
@@ -306,7 +337,8 @@ class GameState {
     if (allStranded) {
       this.phase = 'ended';
       this.winner = 'mrx';
-      this.winReason = 'All detectives are stranded — Mr. X wins!';
+      this.winReason = 'All inspectors are stranded — The Don wins!';
+      this._recordSnapshot(null, null, this.winReason);
       return { ok: true, gameOver: true };
     }
 
@@ -316,11 +348,31 @@ class GameState {
     if (this.getValidMoves(this.mrX).length === 0) {
       this.phase = 'ended';
       this.winner = 'detectives';
-      this.winReason = 'Mr. X has no valid moves — detectives win!';
+      this.winReason = 'The Don has no valid moves — inspectors win!';
+      this._recordSnapshot(null, null, this.winReason);
       return { ok: true, gameOver: true };
     }
 
     return { ok: true, newRound: true };
+  }
+
+  _recordSnapshot(move, playerId, event = null) {
+    const snapshot = {
+      round: this.round,
+      playerId,
+      playerName: playerId ? this.players[playerId]?.name : null,
+      playerRole: playerId ? this.players[playerId]?.role : null,
+      move,  // { destination, ticket } or null
+      positions: { ...this.positions },
+      tickets: {},
+      travelLog: this.travelLog.map(e => ({ ...e })),
+      event,
+    };
+    // Deep copy tickets
+    for (const [id, t] of Object.entries(this.tickets)) {
+      snapshot.tickets[id] = { ...t };
+    }
+    this.history.push(snapshot);
   }
 
   _isStranded(playerId) {
@@ -361,6 +413,8 @@ class GameState {
       winner: this.winner,
       winReason: this.winReason,
       isDoubleMoveFirstHalf: this.isDoubleMoveFirstHalf,
+      paused: this.paused,
+      humanControlledAI: this.humanControlledAI,
     };
   }
 
@@ -383,6 +437,8 @@ class GameState {
       winner: this.winner,
       winReason: this.winReason,
       isDoubleMoveFirstHalf: this.isDoubleMoveFirstHalf,
+      paused: this.paused,
+      humanControlledAI: this.humanControlledAI,
     };
   }
 
@@ -405,6 +461,7 @@ class GameState {
       winner: this.winner,
       winReason: this.winReason,
       isDoubleMoveFirstHalf: false,
+      history: this.history,
     };
   }
 

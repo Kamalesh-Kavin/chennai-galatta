@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: scotland-yard
+    name: chennai-galatta
     runtime: node
     plan: free
     buildCommand: npm install

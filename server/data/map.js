@@ -1,5 +1,5 @@
-// Scotland Yard Board Game - Complete Map Data
-// Standard Ravensburger edition topology, 199 stations
+// Chennai Galatta Board Game - Complete Map Data
+// 199 stations across Chennai, stylized layout
 
 // =============================================================================
 // TAXI connections (adjacency list) - All 199 stations

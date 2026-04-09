@@ -1,4 +1,4 @@
-// Scotland Yard — Server
+// Chennai Galatta — Server
 // Express + Socket.IO, single game room
 
 const express = require('express');
@@ -15,7 +15,16 @@ const io = new Server(server, { cors: { origin: '*' } });
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+// Health / keep-alive endpoint (prevents Render free-tier idle timeout)
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', phase: game.phase, uptime: process.uptime() | 0 });
+});
+
 const game = new GameState();
+
+// Session-to-player mapping for reconnection
+// Maps sessionId (client-generated UUID) -> playerId in the game
+const sessionMap = {};  // sessionId -> playerId
 
 // AI move delay (ms) for realism
 const AI_DELAY = 800;
@@ -61,11 +70,21 @@ function broadcastLobby() {
 }
 
 async function processAITurns() {
-  while (game.phase === 'playing' && game.currentTurn && game.players[game.currentTurn]?.isAI) {
-    await new Promise(r => setTimeout(r, AI_DELAY));
-
+  while (game.phase === 'playing' && !game.paused && game.currentTurn && game.players[game.currentTurn]?.isAI) {
     const aiId = game.currentTurn;
     const isMrX = aiId === game.mrX;
+
+    // If human-controlled AI mode is active, skip auto-play for AI inspectors
+    // (humans will submit moves on their behalf)
+    if (game.humanControlledAI && !isMrX) {
+      broadcastState();
+      break;
+    }
+
+    await new Promise(r => setTimeout(r, AI_DELAY));
+
+    // Re-check pause state after delay (could have been paused while waiting)
+    if (game.paused || game.phase !== 'playing') break;
 
     // Check if Mr. X AI should use double move
     if (isMrX && !game.isDoubleMoveFirstHalf && AI.shouldUseDoubleMove(game)) {
@@ -106,6 +125,50 @@ io.on('connection', (socket) => {
     socket.emit('adjacency', { taxi: TAXI, bus: BUS, underground: UNDERGROUND, ferry: FERRY });
   });
 
+  // Attempt auto-rejoin: client sends sessionId, server checks if it maps to a DC'd player
+  socket.on('rejoin', ({ sessionId }) => {
+    if (!sessionId || game.phase !== 'playing') {
+      socket.emit('rejoinResult', { ok: false });
+      return;
+    }
+
+    const playerId = sessionMap[sessionId];
+    if (!playerId || !game.players[playerId]) {
+      socket.emit('rejoinResult', { ok: false });
+      return;
+    }
+
+    const player = game.players[playerId];
+
+    // Only rejoin if the player is currently disconnected (AI takeover)
+    if (player.socketId && player.socketId !== socket.id) {
+      // Player is still connected on another socket — don't hijack
+      socket.emit('rejoinResult', { ok: false });
+      return;
+    }
+
+    // Reclaim the slot
+    player.socketId = socket.id;
+    player.isAI = false;
+    // Remove " (DC)" suffix if present
+    player.name = player.name.replace(/\s*\(DC\)$/, '');
+
+    console.log(`${player.name} reconnected as ${player.role}`);
+
+    // Send them their state
+    const state = game.getStateForPlayer(playerId);
+    state.myId = playerId;
+    state.stationPositions = STATION_POSITIONS;
+    socket.emit('rejoinResult', { ok: true, playerId });
+    socket.emit('gameState', state);
+
+    // Broadcast updated state to everyone
+    broadcastState();
+
+    // If it was this player's turn but AI hadn't moved yet, they can move now
+    // (no need to call processAITurns — player is human again)
+  });
+
   // Send current state
   if (game.phase === 'lobby') {
     broadcastLobby();
@@ -117,7 +180,7 @@ io.on('connection', (socket) => {
   }
 
   // Join game
-  socket.on('join', ({ name, role }) => {
+  socket.on('join', ({ name, role, sessionId }) => {
     if (!name || !role) {
       socket.emit('error', { message: 'Name and role required' });
       return;
@@ -127,6 +190,11 @@ io.on('connection', (socket) => {
     if (result.error) {
       socket.emit('error', { message: result.error });
       return;
+    }
+
+    // Track session for reconnection
+    if (sessionId) {
+      sessionMap[sessionId] = socket.id;  // playerId === socket.id in lobby
     }
 
     console.log(`${name} joined as ${role}`);
@@ -171,12 +239,29 @@ io.on('connection', (socket) => {
       id => game.players[id].socketId === socket.id
     );
     if (!playerId) return;
+
+    // Determine who the move is for
+    let moveForId = playerId;
+
     if (game.currentTurn !== playerId) {
-      socket.emit('error', { message: 'Not your turn' });
-      return;
+      // Allow human inspectors to control AI inspectors when humanControlledAI is active
+      const currentTurnPlayer = game.players[game.currentTurn];
+      const submitter = game.players[playerId];
+      if (
+        game.humanControlledAI &&
+        currentTurnPlayer?.isAI &&
+        currentTurnPlayer?.role === 'detective' &&
+        submitter?.role === 'detective' &&
+        !submitter?.isAI
+      ) {
+        moveForId = game.currentTurn; // submit move on behalf of the AI
+      } else {
+        socket.emit('error', { message: 'Not your turn' });
+        return;
+      }
     }
 
-    const result = game.makeMove(playerId, destination, ticket);
+    const result = game.makeMove(moveForId, destination, ticket);
     if (result.error) {
       socket.emit('error', { message: result.error });
       return;
@@ -210,30 +295,75 @@ io.on('connection', (socket) => {
     const playerId = Object.keys(game.players).find(
       id => game.players[id].socketId === socket.id
     );
-    if (!playerId || game.currentTurn !== playerId) {
+    if (!playerId) {
       if (typeof callback === 'function') callback([]);
       return;
     }
-    const moves = game.getValidMoves(playerId);
-    if (typeof callback === 'function') callback(moves);
+
+    // If it's the requester's turn, return their moves
+    if (game.currentTurn === playerId) {
+      const moves = game.getValidMoves(playerId);
+      if (typeof callback === 'function') callback(moves);
+      return;
+    }
+
+    // If humanControlledAI: allow human inspectors to get AI inspector's valid moves
+    const currentTurnPlayer = game.players[game.currentTurn];
+    const submitter = game.players[playerId];
+    if (
+      game.humanControlledAI &&
+      currentTurnPlayer?.isAI &&
+      currentTurnPlayer?.role === 'detective' &&
+      submitter?.role === 'detective' &&
+      !submitter?.isAI
+    ) {
+      const moves = game.getValidMoves(game.currentTurn);
+      if (typeof callback === 'function') callback(moves);
+      return;
+    }
+
+    if (typeof callback === 'function') callback([]);
   });
 
   // Reset game
   socket.on('resetGame', () => {
     game.reset();
+    // Clear all session mappings
+    for (const key of Object.keys(sessionMap)) delete sessionMap[key];
     console.log('Game reset');
     broadcastLobby();
+  });
+
+  // Pause / Resume game
+  socket.on('togglePause', () => {
+    const result = game.togglePause();
+    if (result.error) {
+      socket.emit('error', { message: result.error });
+      return;
+    }
+    console.log(result.paused ? 'Game paused' : 'Game resumed');
+    broadcastState();
+
+    // If resumed and it's an AI's turn, resume AI processing
+    if (!result.paused) {
+      processAITurns();
+    }
   });
 
   // Disconnect
   socket.on('disconnect', () => {
     console.log(`Disconnected: ${socket.id}`);
-    // If in lobby, remove player
+    // If in lobby, remove player and clean up session mapping
     if (game.phase === 'lobby') {
       game.removePlayer(socket.id);
+      // Remove session mapping for this player
+      for (const [sid, pid] of Object.entries(sessionMap)) {
+        if (pid === socket.id) delete sessionMap[sid];
+      }
       broadcastLobby();
     }
     // If in game, mark player as disconnected (AI takes over)
+    // Session mapping is preserved so they can rejoin
     if (game.phase === 'playing') {
       const playerId = Object.keys(game.players).find(
         id => game.players[id].socketId === socket.id
@@ -257,9 +387,9 @@ io.on('connection', (socket) => {
 // START
 // =====================
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`\n  Scotland Yard Online`);
+  console.log(`\n  Chennai Galatta`);
   console.log(`  Server running on http://localhost:${PORT}`);
   console.log(`  Waiting for players...\n`);
 });

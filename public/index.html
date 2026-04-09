@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scotland Yard Online</title>
+  <title>Chennai Galatta</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
   <!-- LOBBY SCREEN -->
   <div id="lobby-screen" class="screen active">
     <div class="lobby-container">
-      <h1>SCOTLAND YARD</h1>
-      <h2>Online</h2>
+      <h1>CHENNAI GALATTA</h1>
+      <h2>The Great Chase</h2>
       <div class="join-form">
         <input type="text" id="player-name" placeholder="Your name" maxlength="20" autocomplete="off">
         <div class="role-select">
-          <button class="role-btn" data-role="mrx" id="btn-join-mrx">Join as Mr. X</button>
-          <button class="role-btn" data-role="detective" id="btn-join-detective">Join as Detective</button>
+          <button class="role-btn" data-role="mrx" id="btn-join-mrx">Join as The Don</button>
+          <button class="role-btn" data-role="detective" id="btn-join-detective">Join as Inspector</button>
         </div>
       </div>
 
@@ -31,7 +31,7 @@
       </div>
 
       <div class="lobby-info">
-        <p>1 Mr. X + up to 5 Detectives. Empty slots filled by AI.</p>
+        <p>1 Don + up to 5 Inspectors. Empty slots filled by AI.</p>
       </div>
     </div>
   </div>
@@ -42,7 +42,7 @@
       <!-- Top bar -->
       <div class="top-bar">
         <div class="top-left">
-          <span class="game-title">SCOTLAND YARD</span>
+          <span class="game-title">CHENNAI GALATTA</span>
           <span class="round-info" id="round-info">Round 1/22</span>
         </div>
         <div class="top-center">
@@ -50,6 +50,7 @@
         </div>
         <div class="top-right">
           <button id="btn-how-to-play" class="btn-small">How to Play</button>
+          <button id="btn-pause" class="btn-small">Pause</button>
           <button id="btn-reset" class="btn-small btn-danger">Reset</button>
         </div>
       </div>
@@ -60,10 +61,10 @@
         <div class="board-container" id="board-container">
           <canvas id="board-canvas"></canvas>
           <div class="map-legend">
-            <div class="legend-item"><span class="legend-line taxi"></span> Taxi</div>
+            <div class="legend-item"><span class="legend-line taxi"></span> Auto</div>
             <div class="legend-item"><span class="legend-line bus"></span> Bus</div>
-            <div class="legend-item"><span class="legend-line underground"></span> Underground</div>
-            <div class="legend-item"><span class="legend-line ferry"></span> Ferry</div>
+            <div class="legend-item"><span class="legend-line underground"></span> Metro</div>
+            <div class="legend-item"><span class="legend-line ferry"></span> Boat</div>
           </div>
           <div class="board-zoom-controls">
             <button id="btn-zoom-in" title="Zoom In">+</button>
@@ -78,7 +79,7 @@
 
           <!-- Travel Log -->
           <div class="panel" id="travel-log-panel">
-            <h3>Mr. X Travel Log</h3>
+            <h3>The Don's Travel Log</h3>
             <div id="travel-log" class="travel-log"></div>
           </div>
 
@@ -108,7 +109,47 @@
     <div class="overlay-content">
       <h2 id="game-over-title">Game Over</h2>
       <p id="game-over-reason"></p>
-      <button id="btn-new-game" class="btn-primary">New Game</button>
+      <div class="game-over-stats" id="game-over-stats"></div>
+      <div class="game-over-buttons">
+        <button id="btn-review-game" class="btn-primary">Review Game</button>
+        <button id="btn-new-game" class="btn-secondary">New Game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Review Overlay -->
+  <div id="history-overlay" class="overlay" style="display:none">
+    <div class="history-container">
+      <div class="history-header">
+        <h2>Game Review</h2>
+        <button id="btn-history-close" class="btn-small" title="Close">&times;</button>
+      </div>
+      <div class="history-main">
+        <div class="history-board-wrap">
+          <canvas id="history-canvas"></canvas>
+        </div>
+        <div class="history-sidebar">
+          <div class="history-nav">
+            <button id="btn-hist-first" class="hist-nav-btn" title="First">&laquo;</button>
+            <button id="btn-hist-prev" class="hist-nav-btn" title="Previous">&lsaquo;</button>
+            <span id="hist-step-label" class="hist-step-label">Step 0 / 0</span>
+            <button id="btn-hist-next" class="hist-nav-btn" title="Next">&rsaquo;</button>
+            <button id="btn-hist-last" class="hist-nav-btn" title="Last">&raquo;</button>
+          </div>
+          <div class="history-round-info" id="hist-round-info"></div>
+          <div class="history-move-info" id="hist-move-info"></div>
+          <div class="history-positions" id="hist-positions"></div>
+          <div class="history-event" id="hist-event"></div>
+          <div class="history-round-select">
+            <label>Jump to round:</label>
+            <select id="hist-round-select"></select>
+          </div>
+        </div>
+      </div>
+      <div class="history-footer">
+        <button id="btn-hist-back" class="btn-secondary">Back to Results</button>
+        <button id="btn-hist-new-game" class="btn-primary">New Game</button>
+      </div>
     </div>
   </div>
 
