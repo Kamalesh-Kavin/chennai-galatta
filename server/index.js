@@ -387,7 +387,7 @@ io.on('connection', (socket) => {
 // START
 // =====================
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`\n  Chennai Galatta`);
   console.log(`  Server running on http://localhost:${PORT}`);
