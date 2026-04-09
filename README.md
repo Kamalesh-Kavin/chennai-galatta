@@ -1,21 +1,22 @@
-# Scotland Yard — Online Multiplayer
+# Chennai Galatta — Online Multiplayer
 
-A fully playable online multiplayer implementation of the classic asymmetric deduction board game. One player controls the elusive Mr. X fleeing across London, while up to five detectives work together to track and capture him. Any empty role is automatically filled by AI, so you can play solo, with one friend, or with a full group.
+A fully playable online multiplayer implementation of the classic asymmetric deduction board game, re-themed as a chase through the streets of Chennai. One player controls The Don fleeing across the city, while up to five Inspectors work together to track and capture him. Any empty role is automatically filled by AI, so you can play solo, with one friend, or with a full group.
 
 Built as a single-page web app with real-time WebSocket synchronization — no accounts, no downloads, just share the link and play.
 
 ## Features
 
-- **Full Scotland Yard rules**: 22 rounds, 199 stations, taxi/bus/underground/ferry transport
-- **Flexible player/AI mixing**: Any role (Mr. X or detectives 1–5) can be human or AI — empty slots auto-filled with bots
-- **London map board**: Bright SVG map background with districts, Thames River, parks, bridges, and landmarks
+- **Full Scotland Yard rules**: 22 rounds, 199 stations, auto/bus/metro/boat transport
+- **Chennai-themed map**: SVG map with real Chennai districts — Anna Nagar, T. Nagar, Mylapore, Adyar, George Town, Egmore, and more
+- **Flexible player/AI mixing**: Any role (The Don or Inspectors 1–5) can be human or AI — empty slots auto-filled with bots
 - **Real-time multiplayer**: WebSocket-based state sync via Socket.IO
-- **Mr. X reveal mechanic**: Position hidden except on rounds 3, 8, 13, 18, 22
-- **Double moves**: Mr. X can take two consecutive turns (twice per game)
-- **Black tickets**: Mr. X has 5 wildcard tickets usable on any transport (including ferries)
-- **Smart AI**: Heuristic-based AI for both Mr. X (evasion) and detectives (pursuit)
+- **The Don's reveal mechanic**: Position hidden except on rounds 3, 8, 13, 18, 22
+- **Double moves**: The Don can take two consecutive turns (twice per game)
+- **Black tickets**: The Don has 5 wildcard tickets usable on any transport (including boats)
+- **Smart AI**: Heuristic-based AI for both The Don (evasion) and Inspectors (pursuit)
 - **Interactive board**: Canvas rendering with zoom/pan (mouse, touch, buttons), station highlighting, animated player tokens
 - **How to Play guide**: Built-in rules overlay for new players
+- **Game review**: Step-by-step replay of the entire game after it ends
 - **Responsive UI**: Glassmorphism panels, Google Fonts, works on desktop and tablet
 
 ## Tech Stack
@@ -28,7 +29,7 @@ Built as a single-page web app with real-time WebSocket synchronization — no a
 | State | Server-authoritative (no client trust) |
 | Map | SVG background + Canvas overlay |
 
-**~3,700 lines of code** across 8 source files. Zero external frontend dependencies.
+**~5,100 lines of code** across 8 source files. Zero external frontend dependencies.
 
 ## Getting Started
 
@@ -39,8 +40,8 @@ Built as a single-page web app with real-time WebSocket synchronization — no a
 ### Local Development
 
 ```bash
-git clone https://github.com/Kamalesh-Kavin/scotland-yard.git
-cd scotland-yard
+git clone https://github.com/Kamalesh-Kavin/chennai-galatta.git
+cd chennai-galatta
 npm install
 npm run dev
 ```
@@ -74,14 +75,14 @@ This repo includes a `render.yaml` blueprint for one-click deployment:
 
 ## How to Play
 
-1. **Lobby**: Enter your name and choose a role — Mr. X or Detective. Unclaimed roles are filled by AI.
-2. **Mr. X's goal**: Evade capture for 22 rounds by moving secretly across London.
-3. **Detectives' goal**: Land on Mr. X's station to catch him before round 22 ends.
-4. **Turns**: Mr. X moves first each round, then detectives in order. Each move uses a ticket (taxi, bus, or underground).
-5. **Travel log**: Mr. X's ticket type is always visible, but his station is hidden — except on **reveal rounds** (3, 8, 13, 18, 22).
-6. **Special moves**: Mr. X has **5 black tickets** (wildcard, also needed for ferries) and **2 double moves** (take two consecutive turns).
-7. **Detectives win** if any detective lands on Mr. X's station, or if Mr. X has no valid moves.
-8. **Mr. X wins** if he survives all 22 rounds, or if all detectives are stranded (no valid moves).
+1. **Lobby**: Enter your name and choose a role — The Don or Inspector. Unclaimed roles are filled by AI.
+2. **The Don's goal**: Evade capture for 22 rounds by moving secretly across Chennai.
+3. **Inspectors' goal**: Land on The Don's station to catch him before round 22 ends.
+4. **Turns**: The Don moves first each round, then Inspectors in order. Each move uses a ticket (auto, bus, or metro).
+5. **Travel log**: The Don's ticket type is always visible, but his station is hidden — except on **reveal rounds** (3, 8, 13, 18, 22).
+6. **Special moves**: The Don has **5 black tickets** (wildcard, also needed for boats) and **2 double moves** (take two consecutive turns).
+7. **Inspectors win** if any Inspector lands on The Don's station, or if The Don has no valid moves.
+8. **The Don wins** if he survives all 22 rounds, or if all Inspectors are stranded (no valid moves).
 
 ---
 
@@ -91,7 +92,7 @@ This repo includes a `render.yaml` blueprint for one-click deployment:
 ┌─────────────────────────────────────────────────┐
 │                   Browser                        │
 │  ┌─────────────────────────────────────────────┐ │
-│  │  client.js (1144 lines)                     │ │
+│  │  client.js (1899 lines)                     │ │
 │  │  ┌──────────┐ ┌──────────┐ ┌─────────────┐ │ │
 │  │  │ Canvas   │ │ UI Panels│ │ Socket.IO   │ │ │
 │  │  │ Renderer │ │ (DOM)    │ │ Client      │ │ │
@@ -102,16 +103,16 @@ This repo includes a `render.yaml` blueprint for one-click deployment:
 ┌──────────────────────────────────────┼───────────┐
 │                   Server             │           │
 │  ┌───────────────────────────────────┼─────────┐ │
-│  │  index.js (265 lines)            │         │ │
+│  │  index.js (395 lines)            │         │ │
 │  │  Express 5 + Socket.IO           │         │ │
 │  │  ┌────────────────┐  ┌───────────┴───────┐ │ │
 │  │  │ GameState.js   │  │ AI.js             │ │ │
-│  │  │ (444 lines)    │  │ (190 lines)       │ │ │
+│  │  │ (501 lines)    │  │ (190 lines)       │ │ │
 │  │  │ Rules engine   │  │ Heuristic bots    │ │ │
 │  │  └───────┬────────┘  └───────────────────┘ │ │
 │  │          │                                  │ │
 │  │  ┌───────┴────────┐                        │ │
-│  │  │ map.js (588 ln)│                        │ │
+│  │  │ map.js (565 ln)│                        │ │
 │  │  │ 199 stations   │                        │ │
 │  │  │ Adjacency data │                        │ │
 │  │  └────────────────┘                        │ │
@@ -133,13 +134,13 @@ Client action (move, join, etc.)
         → Client re-renders board + UI
 ```
 
-Mr. X receives `getMrXView()` (sees everything). Detectives receive `getDetectiveView()` (Mr. X position hidden except on reveal rounds). After game ends, everyone gets `getEndView()` with full information.
+The Don receives `getMrXView()` (sees everything). Inspectors receive `getDetectiveView()` (The Don's position hidden except on reveal rounds). After game ends, everyone gets `getEndView()` with full information.
 
 ---
 
 ## Implementation Details
 
-### Server (`server/index.js` — 265 lines)
+### Server (`server/index.js` — 395 lines)
 
 Express serves static files from `public/`. A single Socket.IO namespace handles all game communication.
 
@@ -151,7 +152,7 @@ Express serves static files from `public/`. A single Socket.IO namespace handles
 | `leave` | — | Leave lobby |
 | `startGame` | — | Start game (fills empty slots with AI) |
 | `move` | `{ destination, ticket }` | Make a move on your turn |
-| `useDoubleMove` | — | Mr. X activates double move |
+| `useDoubleMove` | — | The Don activates double move |
 | `getValidMoves` | — (ack callback) | Request valid moves for current position |
 | `resetGame` | — | Reset to lobby |
 | `getAdjacency` | — | Request map adjacency data |
@@ -162,14 +163,14 @@ Express serves static files from `public/`. A single Socket.IO namespace handles
 |-------|-------------|
 | `lobbyState` | Lobby info: player list, roles, phase |
 | `gameState` | Role-filtered game state (positions, tickets, travel log, etc.) |
-| `adjacency` | Map data: taxi/bus/underground/ferry adjacency lists |
+| `adjacency` | Map data: auto/bus/metro/boat adjacency lists |
 | `error` | Validation error message |
 
 **AI Turn Processing**: After each human move, the server runs an async loop checking if it's an AI player's turn. AI moves are delayed by 800ms for realism. If AI is stranded (no valid moves), it's marked and skipped.
 
 **Disconnect Handling**: Disconnected players are replaced by AI (name appended with "(DC)"). If it was their turn, AI takes over immediately.
 
-### Game Engine (`server/game/GameState.js` — 444 lines)
+### Game Engine (`server/game/GameState.js` — 501 lines)
 
 Fully server-authoritative rules engine.
 
@@ -180,20 +181,20 @@ Fully server-authoritative rules engine.
 
 **Turn Flow:**
 ```
-Round start → Mr. X moves → Detective 1 → Detective 2 → ... → Detective 5 → Round end
-                    ↑                                                            │
-                    └── (if double move: Mr. X goes again before detectives) ────┘
+Round start → The Don moves → Inspector 1 → Inspector 2 → ... → Inspector 5 → Round end
+                     ↑                                                            │
+                     └── (if double move: The Don goes again before Inspectors) ──┘
 ```
 
 **Ticket System:**
-- Mr. X: 99 taxi / 99 bus / 99 underground / 5 black / 2 double moves
-- Each detective: 11 taxi / 8 bus / 4 underground
+- The Don: 99 auto / 99 bus / 99 metro / 5 black / 2 double moves
+- Each Inspector: 11 auto / 8 bus / 4 metro
 
-Detectives spend tickets (finite supply). Mr. X effectively has unlimited standard tickets. Black tickets are wildcards usable on any connection type, and are the only way to use ferries.
+Inspectors spend tickets (finite supply). The Don effectively has unlimited standard tickets. Black tickets are wildcards usable on any connection type, and are the only way to use boats.
 
 **Win Conditions:**
-- **Detectives win**: A detective lands on Mr. X's station, or Mr. X has no valid moves
-- **Mr. X wins**: Survives past round 22, or all detectives are stranded
+- **Inspectors win**: An Inspector lands on The Don's station, or The Don has no valid moves
+- **The Don wins**: Survives past round 22, or all Inspectors are stranded
 
 **Key Methods:**
 
@@ -201,8 +202,8 @@ Detectives spend tickets (finite supply). Mr. X effectively has unlimited standa
 |--------|-------------|
 | `getValidMoves(playerId)` | Computes all legal `{ station, ticket }` pairs from current position |
 | `makeMove(playerId, dest, ticket)` | Validates and applies move, updates travel log, checks capture, advances turn |
-| `useDoubleMove(playerId)` | Activates Mr. X's double move ability |
-| `getStateForPlayer(playerId)` | Returns role-filtered state (Mr. X view vs detective view) |
+| `useDoubleMove(playerId)` | Activates The Don's double move ability |
+| `getStateForPlayer(playerId)` | Returns role-filtered state (Don view vs Inspector view) |
 | `fillWithAI()` | Fills empty slots with AI players |
 | `startGame()` | Assigns random starting positions, distributes tickets |
 
@@ -210,52 +211,63 @@ Detectives spend tickets (finite supply). Mr. X effectively has unlimited standa
 
 Heuristic scoring system — no tree search or lookahead.
 
-**Mr. X AI — Evasion Strategy:**
+**The Don AI — Evasion Strategy:**
 
 | Factor | Weight | Logic |
 |--------|--------|-------|
-| Distance from detectives | +10 per unit | Euclidean distance in map coordinates |
+| Distance from Inspectors | +10 per unit | Euclidean distance in map coordinates |
 | Escape routes | +3 per neighbor | Number of connections from destination |
-| Adjacent detectives | -20 per detective | Penalty for destinations near detectives |
-| Ticket conservation | +2 taxi, +1 bus, -3 black | Prefers cheap tickets |
+| Adjacent Inspectors | -20 per Inspector | Penalty for destinations near Inspectors |
+| Ticket conservation | +2 auto, +1 bus, -3 black | Prefers cheap tickets |
 | Reveal round bonus | +5 per unit distance | Extra weight on rounds 3/8/13/18/22 |
-| Underground access | +4 | Prefers stations with underground |
+| Metro access | +4 | Prefers stations with metro |
 
 Selects randomly from the **top 3** scoring moves for unpredictability.
 
-**Double Move Decision**: Triggers when 2+ detectives are adjacent, or when only 0–1 safe escape routes exist.
+**Double Move Decision**: Triggers when 2+ Inspectors are adjacent, or when only 0–1 safe escape routes exist.
 
-**Detective AI — Pursuit Strategy:**
+**Inspector AI — Pursuit Strategy:**
 
 | Factor | Weight | Logic |
 |--------|--------|-------|
-| Get closer to target | +15 per unit closer | Target = last known Mr. X position, or map center |
+| Get closer to target | +15 per unit closer | Target = last known Don position, or map center |
 | Avoid clustering | -10 if too close to ally | Promotes spread across the board |
 | Hub preference | +2 per connection | Prefers well-connected stations |
-| Ticket conservation | +1 taxi, -2 underground | Saves expensive tickets |
+| Ticket conservation | +1 auto, -2 metro | Saves expensive tickets |
 
 Selects randomly from the **top 2** scoring moves.
 
-### Map Data (`server/data/map.js` — 588 lines)
+### Map Data (`server/data/map.js` — 565 lines)
 
-Standard 199-station topology from the classic board game.
+Standard 199-station topology matching the original Scotland Yard board game, themed as Chennai locations.
 
 | Data | Count |
 |------|-------|
 | Stations | 199 |
-| Taxi connections | 347 undirected edges |
-| Bus connections | 130 undirected edges |
-| Underground connections | 24 undirected edges |
-| Ferry connections | 3 undirected edges |
-| Underground stations | 16 |
-| Bus stations | 83 |
-| Ferry stations | 4 (108, 115, 157, 194) |
+| Auto connections | ~350 undirected edges |
+| Bus connections | ~130 undirected edges |
+| Metro connections | ~24 undirected edges |
+| Boat connections | 3 undirected edges |
+| Metro stations | 14 |
+| Bus stations | 62 |
+| Boat stations | 4 (108, 115, 157, 194) |
 | Starting positions | 18 |
 | Reveal rounds | 5 (rounds 3, 8, 13, 18, 22) |
 
 Station positions are mapped onto a 1000x700 coordinate grid. The SVG map background uses the same coordinate space for pixel-perfect alignment.
 
-### Client (`public/js/client.js` — 1144 lines)
+### SVG Map (`public/img/chennai-map.svg` — 214 lines)
+
+Hand-crafted SVG background matching the 1000x700 station coordinate grid:
+
+- Warm terracotta/beige base reflecting Chennai's tropical feel
+- 14 colored district zones (Anna Nagar, Egmore, T. Nagar, Mylapore, Adyar, George Town, etc.)
+- Major road network (Anna Salai, Poonamallee High Road, GST Road, ECR, Inner Ring Road, Kamarajar Salai)
+- Green areas (Anna Nagar Tower Park, Guindy National Park, Theosophical Society, Semmozhi Poonga, IIT Madras)
+- Landmarks (Fort St. George, Kapaleeshwarar Temple, Chennai Central Station, Anna Nagar Tower)
+- 21 district labels, compass rose, decorative border
+
+### Client (`public/js/client.js` — 1899 lines)
 
 Single-file vanilla JS client handling all UI, rendering, and socket communication.
 
@@ -268,8 +280,8 @@ Single-file vanilla JS client handling all UI, rendering, and socket communicati
    offset = canvasCenter + panOffset
 3. Draw layers:
    a. Background fill (#d8ccb8)
-   b. SVG map image (london-map.svg) — aligned to coordinate system
-   c. Connections (drawConnections) — taxi/bus/underground/ferry lines
+   b. SVG map image (chennai-map.svg) — aligned to coordinate system
+   c. Connections (drawConnections) — auto/bus/metro/boat lines
    d. Stations (drawStations) — shaped by transport type
    e. Player tokens (drawPlayers) — gradient circles with labels
 ```
@@ -277,31 +289,18 @@ Single-file vanilla JS client handling all UI, rendering, and socket communicati
 **Connection Rendering**: 8 problematic connections are drawn as quadratic bezier curves instead of straight lines, preventing visual confusion where a line passes through an unconnected intermediate station. Configured via `CURVED_CONNECTIONS` map with signed offsets controlling curve direction.
 
 **Station Shapes**:
-- Diamond — underground station
+- Diamond — metro station
 - Rounded square — bus station
-- Circle — taxi-only station
+- Circle — auto-only station
 
-**Animation System**: `requestAnimationFrame` loop cycling 0–1 every 2 seconds. Powers pulsing highlights on valid move targets, current-turn player tokens, and Mr. X's last known position indicator.
+**Animation System**: `requestAnimationFrame` loop cycling 0–1 every 2 seconds. Powers pulsing highlights on valid move targets, current-turn player tokens, and The Don's last known position indicator.
 
 **Zoom/Pan**: Mouse drag, scroll wheel, touch pan/pinch, and button controls. Coordinates are transformed through the zoom/pan state in `toCanvas()`.
 
-### SVG Map (`public/img/london-map.svg` — 317 lines)
-
-Hand-crafted SVG background matching the 1000x700 station coordinate grid:
-
-- Warm parchment base (#e8dcc8)
-- 14 colored district zones (Paddington, Marylebone, Soho, The City, Westminster, etc.)
-- Thames River at y≈418–448 (matching the actual gap between station rows)
-- 7 bridges at real crossing points (where taxi connections span the river)
-- Green parks (Regent's Park, Hyde Park, St James's Park)
-- Street grid (major roads + minor cross streets)
-- Landmark icons (Big Ben, Tower of London, St Paul's, Buckingham Palace)
-- District labels, compass rose, decorative border
-
-### CSS (`public/css/style.css` — 929 lines)
+### CSS (`public/css/style.css` — 1240 lines)
 
 Dark-themed UI panels with bright map contrast:
-- 33 CSS custom properties (colors, fonts, glass effects)
+- CSS custom properties (colors, fonts, glass effects)
 - Google Fonts: Playfair Display (headings) + Inter (body)
 - Glassmorphism sidebar panels (`backdrop-filter: blur(16px)`)
 - Responsive layout with mobile hamburger menu
@@ -310,26 +309,30 @@ Dark-themed UI panels with bright map contrast:
 ## Project Structure
 
 ```
-scotland-yard/
+chennai-galatta/
 ├── server/
-│   ├── index.js              # Express + Socket.IO server (265 lines)
+│   ├── index.js              # Express + Socket.IO server (395 lines)
 │   ├── game/
-│   │   ├── GameState.js      # Game rules engine (444 lines)
-│   │   └── AI.js             # AI for Mr. X and detectives (190 lines)
+│   │   ├── GameState.js      # Game rules engine (501 lines)
+│   │   └── AI.js             # AI for The Don and Inspectors (190 lines)
 │   └── data/
-│       └── map.js            # 199 stations, adjacency, positions (588 lines)
+│       └── map.js            # 199 stations, adjacency, positions (565 lines)
 ├── public/
-│   ├── index.html            # Single-page app (118 lines)
+│   ├── index.html            # Single-page app (159 lines)
 │   ├── css/
-│   │   └── style.css         # All styling (929 lines)
+│   │   └── style.css         # All styling (1240 lines)
 │   ├── js/
-│   │   └── client.js         # Game client (1144 lines)
+│   │   └── client.js         # Game client (1899 lines)
 │   └── img/
-│       └── london-map.svg    # London map background (317 lines)
+│       └── chennai-map.svg   # Chennai map background (214 lines)
 ├── package.json
 ├── render.yaml               # Render deployment blueprint
 └── .gitignore
 ```
+
+## Credits
+
+Game mechanics based on the board game [Scotland Yard](https://en.wikipedia.org/wiki/Scotland_Yard_(board_game)) by Ravensburger.
 
 ## License
 
