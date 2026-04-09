@@ -637,7 +637,7 @@ const CURVED_CONNECTIONS = {
   '128-188': -35,   // passes directly through station 160. Curve south
   '171-175': -25,   // passes directly through station 174. Curve south
   '155-198': -35,   // passes near station 169. Curve south
-  '194-195': -25,   // passes near station 193. Curve south (below)
+  '194-195': -40,   // passes through station 193. Curve south (below)
   '129-135': 25,    // passes near station 128. Curve north
   '91-107': -20,    // passes near station 106. Curve south
 };
